@@ -26,6 +26,9 @@ class PDFService:
             width, height = A4
             
             # Font Configuration
+            font_regular = "Helvetica"
+            font_bold = "Helvetica-Bold"
+            
             font_path = os.path.join(os.path.dirname(__file__), "fonts", "NanumGothic.ttf")
             
             if os.path.exists(font_path):

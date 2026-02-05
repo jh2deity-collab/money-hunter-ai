@@ -26,27 +26,19 @@ class PDFService:
             width, height = A4
             
             # Font Configuration
-            font_regular = "Helvetica"
-            font_bold = "Helvetica-Bold"
+            font_path = os.path.join(os.path.dirname(__file__), "fonts", "NanumGothic.ttf")
             
-            # Windows Fonts Check
-            possible_fonts = [
-                ("Malgun", "C:/Windows/Fonts/malgun.ttf"),
-                ("MalgunBold", "C:/Windows/Fonts/malgunbd.ttf")
-            ]
-            
-            try:
-                if os.path.exists(possible_fonts[0][1]):
-                    pdfmetrics.registerFont(TTFont(possible_fonts[0][0], possible_fonts[0][1]))
-                    font_regular = possible_fonts[0][0]
-                    
-                if os.path.exists(possible_fonts[1][1]):
-                    pdfmetrics.registerFont(TTFont(possible_fonts[1][0], possible_fonts[1][1]))
-                    font_bold = possible_fonts[1][0]
-                else:
-                    font_bold = font_regular # Fallback if bold not found
-            except Exception as e:
-                logger.warning(f"Font loading error: {e}")
+            if os.path.exists(font_path):
+                try:
+                    pdfmetrics.registerFont(TTFont("NanumGothic", font_path))
+                    font_regular = "NanumGothic"
+                    font_bold = "NanumGothic" # Use same for bold if only one weight provided
+                except Exception as e:
+                    logger.warning(f"Failed to load bundled font: {e}")
+            else:
+                # Minimal fallback (Will not support Korean on Linux)
+                logger.warning(f"Font file not found at {font_path}. Korean text may not render correctly.")
+
 
             # Data Preparation
             user_name = "Guest"

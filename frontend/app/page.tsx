@@ -13,10 +13,10 @@ export default function Home() {
       <section className="relative min-h-[80vh] flex items-center justify-center overflow-hidden bg-gradient-to-br from-white via-blue-50/30 to-indigo-50/30">
 
         {/* Main Banner Image */}
-        <div className="container mx-auto px-6 py-20 relative z-10 max-w-[1200px] flex flex-col items-center">
+        <div className="container mx-auto px-6 py-10 relative z-10 max-w-[1200px] flex flex-col items-center">
 
           {/* Large Banner Image */}
-          <div className="w-full max-w-[900px] mb-[5px]">
+          <div className="w-full max-w-[600px] mb-8">
             <img
               src="/images/project-banner.png"
               alt="Money Hunter AI - 놓친 돈을 찾아드립니다"

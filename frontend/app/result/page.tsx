@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { simulateISACycle, simulateOverseasTax, downloadReport } from "@/lib/api";
 import { Download, ChevronRight, TrendingUp, PiggyBank, ShieldAlert } from "lucide-react";
 
-export default function ResultPage() {
+function ResultContent() {
     const searchParams = useSearchParams();
     const [loading, setLoading] = useState(true);
     const [results, setResults] = useState<any>({ isa: null, overseas: null });
@@ -218,5 +218,19 @@ export default function ResultPage() {
                 </div>
             </main>
         </div>
+    );
+}
+
+export default function ResultPage() {
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen bg-[#1e2330] flex flex-col items-center justify-center p-4">
+                <div className="text-[#ffd700] text-2xl font-serif font-bold animate-pulse">
+                    LOADING...
+                </div>
+            </div>
+        }>
+            <ResultContent />
+        </Suspense>
     );
 }

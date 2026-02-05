@@ -29,9 +29,41 @@ class PDFService:
             font_regular = "Helvetica"
             font_bold = "Helvetica-Bold"
             
-            font_path = os.path.join(os.path.dirname(__file__), "fonts", "NanumGothic.ttf")
+            # Helper to ensure font exists
+            def _ensure_font():
+                # Vercel-friendly paths
+                # 1. Check local bundle first
+                local_path = os.path.join(os.path.dirname(__file__), "fonts", "NanumGothic.ttf")
+                if os.path.exists(local_path):
+                    return local_path
+                
+                # 2. Check /tmp (for cached download in serverless)
+                tmp_path = "/tmp/NanumGothic.ttf"
+                if os.path.exists(tmp_path):
+                    return tmp_path
+                
+                # 3. Download if missing
+                try:
+                    logger.info("Font not found locally. Downloading NanumGothic...")
+                    import httpx
+                    url = "https://github.com/google/fonts/raw/main/ofl/nanumgothic/NanumGothic-Regular.ttf"
+                    with httpx.Client() as client:
+                        resp = client.get(url)
+                        if resp.status_code == 200:
+                            with open(tmp_path, "wb") as f:
+                                f.write(resp.content)
+                            logger.info(f"Font downloaded to {tmp_path}")
+                            return tmp_path
+                        else:
+                            logger.error(f"Failed to download font: Status {resp.status_code}")
+                except Exception as e:
+                    logger.error(f"Error downloading font: {e}")
+                
+                return None
+
+            font_path = _ensure_font()
             
-            if os.path.exists(font_path):
+            if font_path and os.path.exists(font_path):
                 try:
                     pdfmetrics.registerFont(TTFont("NanumGothic", font_path))
                     font_regular = "NanumGothic"
@@ -40,7 +72,7 @@ class PDFService:
                     logger.warning(f"Failed to load bundled font: {e}")
             else:
                 # Minimal fallback (Will not support Korean on Linux)
-                logger.warning(f"Font file not found at {font_path}. Korean text may not render correctly.")
+                logger.warning(f"Font file not found. Korean text may not render correctly.")
 
 
             # Data Preparation

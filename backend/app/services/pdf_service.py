@@ -31,33 +31,65 @@ class PDFService:
             
             # Helper to ensure font exists
             def _ensure_font():
-                # Vercel-friendly paths
+                import tempfile
+                
                 # 1. Check local bundle first
                 local_path = os.path.join(os.path.dirname(__file__), "fonts", "NanumGothic.ttf")
                 if os.path.exists(local_path):
+                    logger.info(f"Using local font: {local_path}")
                     return local_path
                 
-                # 2. Check /tmp (for cached download in serverless)
-                tmp_path = "/tmp/NanumGothic.ttf"
+                # 2. Check temp dir (for cached download)
+                # Use tempfile.gettempdir() for cross-platform safety (handles /tmp on Linux, C:\Temp on Windows)
+                tmp_dir = tempfile.gettempdir()
+                tmp_path = os.path.join(tmp_dir, "NanumGothic.ttf")
+                
                 if os.path.exists(tmp_path):
+                    logger.info(f"Using cached font from temp: {tmp_path}")
                     return tmp_path
                 
                 # 3. Download if missing
                 try:
                     logger.info("Font not found locally. Downloading NanumGothic...")
-                    import httpx
-                    url = "https://github.com/google/fonts/raw/main/ofl/nanumgothic/NanumGothic-Regular.ttf"
-                    with httpx.Client() as client:
-                        resp = client.get(url)
-                        if resp.status_code == 200:
-                            with open(tmp_path, "wb") as f:
-                                f.write(resp.content)
-                            logger.info(f"Font downloaded to {tmp_path}")
-                            return tmp_path
-                        else:
-                            logger.error(f"Failed to download font: Status {resp.status_code}")
+                    import urllib.request
+                    import ssl
+                    
+                    urls = [
+                        "https://cdn.jsdelivr.net/gh/google/fonts@main/ofl/nanumgothic/NanumGothic-Regular.ttf",
+                        "https://raw.githubusercontent.com/google/fonts/main/ofl/nanumgothic/NanumGothic-Regular.ttf",
+                        "https://fonts.gstatic.com/s/nanumgothic/v23/PN_3Rfi-oW3hYwmKDpxS7F_z_tLfxno.ttf"
+                    ]
+                    
+                    # Create unverified context to avoid SSL errors in some envs
+                    ctx = ssl.create_default_context()
+                    ctx.check_hostname = False
+                    ctx.verify_mode = ssl.CERT_NONE
+                    
+                    headers = {
+                        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+                    }
+                    
+                    for url in urls:
+                        try:
+                            logger.info(f"Attempting download from: {url}")
+                            req = urllib.request.Request(url, headers=headers)
+                            with urllib.request.urlopen(req, context=ctx, timeout=30) as response:
+                                if response.status == 200:
+                                    content = response.read()
+                                    if len(content) > 1000:
+                                        with open(tmp_path, "wb") as f:
+                                            f.write(content)
+                                        logger.info(f"Font successfully downloaded from {url} to {tmp_path}")
+                                        return tmp_path
+                                else:
+                                    logger.warning(f"Failed to download from {url}. Status: {response.status}")
+                        except Exception as inner_e:
+                            logger.warning(f"Error downloading from {url}: {inner_e}")
+                            
+                    logger.error("All font download attempts failed.")
+                    
                 except Exception as e:
-                    logger.error(f"Error downloading font: {e}")
+                    logger.error(f"Critical error in font download process: {e}")
                 
                 return None
 
@@ -65,14 +97,16 @@ class PDFService:
             
             if font_path and os.path.exists(font_path):
                 try:
+                    # Register with error handling
                     pdfmetrics.registerFont(TTFont("NanumGothic", font_path))
                     font_regular = "NanumGothic"
-                    font_bold = "NanumGothic" # Use same for bold if only one weight provided
+                    font_bold = "NanumGothic" 
+                    logger.info(f"Successfully registered font: NanumGothic from {font_path}")
                 except Exception as e:
-                    logger.warning(f"Failed to load bundled font: {e}")
+                    logger.warning(f"Failed to register font {font_path}: {e}")
+                    # Fallback to Helvetica is handled by initial values
             else:
-                # Minimal fallback (Will not support Korean on Linux)
-                logger.warning(f"Font file not found. Korean text may not render correctly.")
+                logger.warning(f"Font file could not be located or downloaded. Using fallback fonts.")
 
 
             # Data Preparation
